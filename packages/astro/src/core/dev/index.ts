@@ -37,7 +37,7 @@ export interface DevServer {
 /** `astro dev` */
 export default async function dev(config: AstroConfig, options: DevOptions = { logging: defaultLogOptions }): Promise<DevServer> {
   // polyfill WebAPIs to globalThis for Node v12, Node v14, and Node v16
-  polyfill(globalThis)
+  polyfill(globalThis);
 
   // start dev server
   const server = new AstroDevServer(config, options);

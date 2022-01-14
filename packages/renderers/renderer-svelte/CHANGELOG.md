@@ -1,5 +1,17 @@
 # @astrojs/renderer-svelte
 
+## 0.3.1
+
+### Patch Changes
+
+- [#2300](https://github.com/withastro/astro/pull/2300) [`34486676`](https://github.com/withastro/astro/commit/344866762c3a96b92bd754cf3706db73e2d74647) Thanks [@moritzlaube](https://github.com/moritzlaube)! - Update Svelte to 3.44.3 to get rid of console warning that component receives an unexpected slot "default".
+
+## 0.3.0
+
+### Minor Changes
+
+- [#2202](https://github.com/withastro/astro/pull/2202) [`45cea6ae`](https://github.com/withastro/astro/commit/45cea6aec5a310fed4cb8da0d96670d6b99a2539) Thanks [@jonathantneal](https://github.com/jonathantneal)! - Officially drop support for Node v12. The minimum supported version is now Node v14.15+,
+
 ## 0.2.3
 
 ### Patch Changes

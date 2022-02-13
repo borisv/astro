@@ -1,30 +1,61 @@
-<img src="https://github.com/withastro/astro/blob/main/assets/social/banner.jpg?raw=true" />
+<a href="https://astro.build">
+  <img src="https://raw.githubusercontent.com/withastro/astro/main/assets/social/banner.svg" />
+</a>
 
-**Astro** is a _fresh but familiar_ approach to building websites. Astro combines decades of proven performance best practices with the DX improvements of the component-oriented era. Use your favorite JavaScript framework and automatically ship the bare-minimum amount of JavaScript—by default.
+<div center>
 
+**Astro** is a new kind of static site builder for the modern web&mdash;powerful developer experience meets lightweight output.
 
-### [Announcement Post →](https://astro.build/blog/introducing-astro)
+</div>
 
-### [Full Documentation Site →](https://docs.astro.build/)
+### [🚀 Read the launch post →](https://astro.build/blog/introducing-astro)
+
+### [📚 Learn Astro →](https://docs.astro.build/en/getting-started/)
 
 ## Project Status
 
-⚠️ **Astro is still an early beta, missing features and bugs are to be expected!** If you can stomach it, then Astro-built sites are production ready and several production websites built with Astro already exist in the wild. We will update this note once we get closer to a stable, v1.0 release.
+⚠️ **Astro is still beta software&mdash;missing features and bugs are to be expected!** We are quickly working our way towards a stable, production-ready v1.0 release, but we are still finalizing some of Astro's APIs.
+
+That being said, there are quite a few Astro sites in production already. We're incredibly grateful to everyone who has made an early bet on Astro!
 
 ## Quick Start
 
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <img width="441" height="1px">
+        <strong>👾 Online</strong>
+      </td>
+      <td>
+        <img width="441" height="1px">
+        <strong>📦 Local</strong>
+      </td>
+    </tr>
+    <tr>
+<td>
+
+Try Astro in your browser!
+
+[Launch astro.new →](https://astro.new)
+
+</td>
+<td>
+
+Get started with Astro using our interactive CLI!
+
 ```bash
-# get started with astro in 3 easy steps:
-mkdir new-project-directory
-cd new-project-directory
-npm init astro
+npm init astro my-astro-project
 ```
 
-### [Full Documentation Site →](https://docs.astro.build/)
+</td>
+    </tr>
+  </tbody>
+</table>
 
 ## Sponsors
 
-You can sponsor Astro's development on [Open Collective][oc]. Astro is generously supported by the following companies and individuals:
+You can sponsor Astro's development on [Open Collective](https://opencollective.com/astrodotbuild). Astro is generously supported by the following companies and individuals:
 
 ### Platinum Sponsors
 
@@ -52,6 +83,14 @@ You can sponsor Astro's development on [Open Collective][oc]. Astro is generousl
         <img width="150" height="40" src="https://raw.githubusercontent.com/withastro/astro/main/.github/assets/divriots-dark.svg#gh-dark-mode-only" alt="‹div›RIOTS" />
         </a>
       </td>
+      <td align="center">
+        <a href="https://stackupdigital.co.uk/#gh-light-mode-only" target="_blank">
+        <img width="162" height="40" src="https://raw.githubusercontent.com/withastro/astro/main/.github/assets/stackup.svg#gh-light-mode-only" alt="StackUp Digital" />
+        </a>
+        <a href="https://stackupdigital.co.uk/#gh-dark-mode-only" target="_blank">
+        <img width="130" height="32" src="https://raw.githubusercontent.com/withastro/astro/main/.github/assets/stackup-dark.svg#gh-dark-mode-only" alt="StackUp Digital" />
+        </a>
+      </td>
     </tr>
   </tbody>
 </table>
@@ -65,5 +104,3 @@ You can sponsor Astro's development on [Open Collective][oc]. Astro is generousl
     </tr>
   </tbody>
 </table>
-
-[oc]: https://opencollective.com/astrodotbuild

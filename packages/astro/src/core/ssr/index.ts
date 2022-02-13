@@ -1,7 +1,7 @@
 import type { BuildResult } from 'esbuild';
 import type vite from '../vite';
-import type { AstroConfig, ComponentInstance, GetStaticPathsResult, Params, Props, Renderer, RouteCache, RouteData, RuntimeMode, SSRElement, SSRError } from '../../@types/astro';
-import type { LogOptions } from '../logger';
+import type { AstroConfig, ComponentInstance, Params, Props, Renderer, RouteData, RuntimeMode, SSRElement, SSRError } from '../../@types/astro';
+import { LogOptions, warn } from '../logger.js';
 
 import eol from 'eol';
 import fs from 'fs';
@@ -11,9 +11,9 @@ import { renderPage } from '../../runtime/server/index.js';
 import { codeFrame, resolveDependency } from '../util.js';
 import { getStylesForURL } from './css.js';
 import { injectTags } from './html.js';
-import { generatePaginateFunction } from './paginate.js';
-import { getParams, validateGetStaticPathsModule, validateGetStaticPathsResult } from './routing.js';
+import { getParams, validateGetStaticPathsResult } from './routing.js';
 import { createResult } from './result.js';
+import { callGetStaticPaths, findPathItemByKey, RouteCache } from './route-cache.js';
 
 const svelteStylesRE = /svelte\?svelte&type=style/;
 
@@ -125,22 +125,10 @@ export async function preload({ astroConfig, filePath, viteServer }: SSROptions)
 	return [renderers, mod];
 }
 
-export async function getParamsAndProps({
-	route,
-	routeCache,
-	logging,
-	pathname,
-	mod,
-}: {
-	route: RouteData | undefined;
-	routeCache: RouteCache;
-	pathname: string;
-	mod: ComponentInstance;
-	logging: LogOptions;
-}): Promise<[Params, Props]> {
+export async function getParamsAndProps({ route, routeCache, pathname }: { route: RouteData | undefined; routeCache: RouteCache; pathname: string }): Promise<[Params, Props]> {
 	// Handle dynamic routes
 	let params: Params = {};
-	let pageProps: Props = {};
+	let pageProps: Props;
 	if (route && !route.pathname) {
 		if (route.params.length) {
 			const paramsMatch = route.pattern.exec(pathname);
@@ -148,24 +136,20 @@ export async function getParamsAndProps({
 				params = getParams(route.params)(paramsMatch);
 			}
 		}
-		validateGetStaticPathsModule(mod);
-		if (!routeCache[route.component]) {
-			routeCache[route.component] = await (
-				await mod.getStaticPaths!({
-					paginate: generatePaginateFunction(route),
-					rss: () => {
-						/* noop */
-					},
-				})
-			).flat();
+		const routeCacheEntry = routeCache.get(route);
+		if (!routeCacheEntry) {
+			throw new Error(`[${route.component}] Internal error: route cache was empty, but expected to be full.`);
 		}
-		validateGetStaticPathsResult(routeCache[route.component], logging);
-		const routePathParams: GetStaticPathsResult = routeCache[route.component];
-		const matchedStaticPath = routePathParams.find(({ params: _params }) => JSON.stringify(_params) === JSON.stringify(params));
+		const paramsKey = JSON.stringify(params);
+		const matchedStaticPath = findPathItemByKey(routeCacheEntry.staticPaths, paramsKey);
 		if (!matchedStaticPath) {
 			throw new Error(`[getStaticPaths] route pattern matched, but no matching static path found. (${pathname})`);
 		}
-		pageProps = { ...matchedStaticPath.props } || {};
+		// This is written this way for performance; instead of spreading the props
+		// which is O(n), create a new object that extends props.
+		pageProps = Object.create(matchedStaticPath.props || Object.prototype);
+	} else {
+		pageProps = {};
 	}
 	return [params, pageProps];
 }
@@ -184,20 +168,16 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 				params = getParams(route.params)(paramsMatch);
 			}
 		}
-		validateGetStaticPathsModule(mod);
-		if (!routeCache[route.component]) {
-			routeCache[route.component] = await (
-				await mod.getStaticPaths!({
-					paginate: generatePaginateFunction(route),
-					rss: () => {
-						/* noop */
-					},
-				})
-			).flat();
+		let routeCacheEntry = routeCache.get(route);
+		// TODO(fks): All of our getStaticPaths logic should live in a single place,
+		// to prevent duplicate runs during the build. This is not expected to run
+		// anymore and we should change this check to thrown an internal error.
+		if (!routeCacheEntry) {
+			warn(logging, 'routeCache', `Internal Warning: getStaticPaths() called twice during the build. (${route.component})`);
+			routeCacheEntry = await callGetStaticPaths(mod, route, true, logging);
+			routeCache.set(route, routeCacheEntry);
 		}
-		validateGetStaticPathsResult(routeCache[route.component], logging);
-		const routePathParams: GetStaticPathsResult = routeCache[route.component];
-		const matchedStaticPath = routePathParams.find(({ params: _params }) => JSON.stringify(_params) === JSON.stringify(params));
+		const matchedStaticPath = routeCacheEntry.staticPaths.find(({ params: _params }) => JSON.stringify(_params) === JSON.stringify(params));
 		if (!matchedStaticPath) {
 			throw new Error(`[getStaticPaths] route pattern matched, but no matching static path found. (${pathname})`);
 		}
@@ -209,7 +189,29 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 	if (!Component) throw new Error(`Expected an exported Astro component but received typeof ${typeof Component}`);
 	if (!Component.isAstroComponentFactory) throw new Error(`Unable to SSR non-Astro component (${route?.component})`);
 
-	const result = createResult({ astroConfig, origin, params, pathname, renderers });
+	// Add hoisted script tags
+	const scripts = astroConfig.buildOptions.experimentalStaticBuild
+		? new Set<SSRElement>(
+				Array.from(mod.$$metadata.hoistedScriptPaths()).map((src) => ({
+					props: { type: 'module', src },
+					children: '',
+				}))
+		  )
+		: new Set<SSRElement>();
+
+	// Inject HMR scripts
+	if (mode === 'development' && astroConfig.buildOptions.experimentalStaticBuild) {
+		scripts.add({
+			props: { type: 'module', src: '/@vite/client' },
+			children: '',
+		});
+		scripts.add({
+			props: { type: 'module', src: new URL('../../runtime/client/hmr.js', import.meta.url).pathname },
+			children: '',
+		});
+	}
+
+	const result = createResult({ astroConfig, logging, origin, params, pathname, renderers, scripts });
 	// Resolves specifiers in the inline hydrated scripts, such as "@astrojs/renderer-preact/client.js"
 	result.resolve = async (s: string) => {
 		// The legacy build needs these to remain unresolved so that vite HTML
@@ -229,7 +231,7 @@ export async function render(renderers: Renderer[], mod: ComponentInstance, ssrO
 	const tags: vite.HtmlTagDescriptor[] = [];
 
 	// dev only: inject Astro HMR client
-	if (mode === 'development') {
+	if (mode === 'development' && !astroConfig.buildOptions.experimentalStaticBuild) {
 		tags.push({
 			tag: 'script',
 			attrs: { type: 'module' },

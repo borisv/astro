@@ -19,6 +19,18 @@ export interface AstroComponentMetadata {
 	componentExport?: { value: string; namespace?: boolean };
 }
 
+/** The flags supported by the Astro CLI */
+export interface CLIFlags {
+	projectRoot?: string;
+	site?: string;
+	sitemap?: boolean;
+	hostname?: string;
+	port?: number;
+	config?: string;
+	experimentalStaticBuild?: boolean;
+	drafts?: boolean;
+}
+
 /**
  * Astro.* available in all components
  * Docs: https://docs.astro.build/reference/api-reference/#astro-global
@@ -108,6 +120,18 @@ export interface AstroUserConfig {
 		 * Default: 'directory'
 		 */
 		pageUrlFormat?: 'file' | 'directory';
+		/**
+		 * Control if markdown draft pages should be included in the build.
+		 * 	`true`: Include draft pages
+		 * 	`false`: Exclude draft pages
+		 * Default: false
+		 */
+		drafts?: boolean;
+		/**
+		 * Experimental: Enables "static build mode" for faster builds.
+		 * Default: false
+		 */
+		experimentalStaticBuild?: boolean;
 	};
 	/** Options for the development server run with `astro dev`. */
 	devOptions?: {
@@ -164,7 +188,7 @@ export type FetchContentResultBase = {
 		source: string;
 		html: string;
 	};
-	url: URL;
+	url: string;
 };
 
 export type GetHydrateCallback = () => Promise<(element: Element, innerHTML: string | null) => void>;
@@ -177,7 +201,11 @@ export type GetHydrateCallback = () => Promise<(element: Element, innerHTML: str
 	rss?: (...args: any[]) => any;
 }
 
-export type GetStaticPathsResult = { params: Params; props?: Props }[];
+export type GetStaticPathsItem = { params: Params; props?: Props };
+export type GetStaticPathsResult = GetStaticPathsItem[];
+export type GetStaticPathsResultKeyed = GetStaticPathsResult & {
+	keyed: Map<string, GetStaticPathsItem>;
+};
 
 export interface HydrateOptions {
 	value?: string;
@@ -313,8 +341,6 @@ export interface RouteData {
 	type: 'page';
 }
 
-export type RouteCache = Record<string, GetStaticPathsResult>;
-
 export type RuntimeMode = 'development' | 'production';
 
 /**
@@ -328,6 +354,12 @@ export interface RSS {
 	description: string;
 	/** Specify arbitrary metadata on opening <xml> tag */
 	xmlns?: Record<string, string>;
+	/**
+	 * If false (default), does not include XSL stylesheet.
+	 * If true, automatically includes 'pretty-feed-v3'.
+	 * If a string value, specifies a local custom XSL stylesheet, for example '/custom-feed.xsl'.
+	 */
+	stylesheet?: string | boolean;
 	/** Specify custom data in opening of file */
 	customData?: string;
 	/**
@@ -351,9 +383,10 @@ export interface RSS {
 	}[];
 }
 
-export type RSSFunction = (args: RSS) => void;
+export type RSSFunction = (args: RSS) => RSSResult;
 
-export type RSSResult = { url: string; xml?: string };
+export type FeedResult = { url: string; content?: string };
+export type RSSResult = { xml: FeedResult; xsl?: FeedResult };
 
 export type SSRError = Error & vite.ErrorPayload['err'];
 

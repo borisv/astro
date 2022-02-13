@@ -3,7 +3,6 @@
 import AdminsReact from '../components/AdminsReact.jsx';
 import AdminsSvelte from '../components/AdminsSvelte.svelte';
 import AdminsVue from '../components/AdminsVue.vue';
-import AdminsPreact from '../components/AdminsPreact.jsx';
 import AdminsSolid from '../components/AdminsSolid.jsx';
 
 // Full Astro Component Syntax:
@@ -18,8 +17,10 @@ import AdminsSolid from '../components/AdminsSolid.jsx';
 
 		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-		<link rel="stylesheet" href={Astro.resolve('../styles/global.css')} />
-		<link rel="stylesheet" href={Astro.resolve('../styles/home.css')} />
+		<style global>
+			@import "../styles/global.css";
+			@import "../styles/home.css";
+		</style>
 
 		<style>
 			header {
@@ -44,7 +45,6 @@ import AdminsSolid from '../components/AdminsSolid.jsx';
 			<AdminsReact client:load />
 			<AdminsSvelte client:load />
 			<AdminsVue client:load />
-			<AdminsPreact client:load />
 			<AdminsSolid client:load />
 		</main>
 	</body>

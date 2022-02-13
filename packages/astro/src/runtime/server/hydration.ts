@@ -1,34 +1,12 @@
 import type { AstroComponentMetadata } from '../../@types/astro';
 import type { SSRElement, SSRResult } from '../../@types/astro';
-import { valueToEstree } from 'estree-util-value-to-estree';
-import * as astring from 'astring';
 import { hydrationSpecifier, serializeListValue } from './util.js';
-
-const { generate, GENERATOR } = astring;
-
-// INVESTIGATE: What features are we getting from this that we need?
-// JSON.stringify has a "replacer" argument.
-// A more robust version alternative to `JSON.stringify` that can handle most values
-// see https://github.com/remcohaszing/estree-util-value-to-estree#readme
-const customGenerator: astring.Generator = {
-	...GENERATOR,
-	Literal(node, state) {
-		if (node.raw != null) {
-			// escape closing script tags in strings so browsers wouldn't interpret them as
-			// closing the actual end tag in HTML
-			state.write(node.raw.replace('</script>', '<\\/script>'));
-		} else {
-			GENERATOR.Literal(node, state);
-		}
-	},
-};
+import serializeJavaScript from 'serialize-javascript';
 
 // Serializes props passed into a component so that they can be reused during hydration.
 // The value is any
 export function serializeProps(value: any) {
-	return generate(valueToEstree(value), {
-		generator: customGenerator,
-	});
+	return serializeJavaScript(value);
 }
 
 const HydrationDirectives = ['load', 'idle', 'media', 'visible', 'only'];
@@ -120,7 +98,9 @@ export async function generateHydrateScript(scriptOptions: HydrateScriptOptions,
 
 	let hydrationSource = '';
 	if (renderer.hydrationPolyfills) {
-		hydrationSource += `await Promise.all([${renderer.hydrationPolyfills.map((src: string) => `\n  import("${src}")`).join(', ')}]);\n`;
+		hydrationSource += `await Promise.all([${(await Promise.all(renderer.hydrationPolyfills.map(async (src: string) => `\n  import("${await result.resolve(src)}")`))).join(
+			', '
+		)}]);\n`;
 	}
 
 	hydrationSource += renderer.source
@@ -129,7 +109,7 @@ export async function generateHydrateScript(scriptOptions: HydrateScriptOptions,
 		  )}")]);
   return (el, children) => hydrate(el)(Component, ${serializeProps(props)}, children);
 `
-		: `await import("${componentUrl}");
+		: `await import("${await result.resolve(componentUrl)}");
   return () => {};
 `;
 

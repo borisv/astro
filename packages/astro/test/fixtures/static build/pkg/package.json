@@ -1,0 +1,11 @@
+{
+  "name": "@astrojs/test-static-build-pkg",
+  "main": "./oops.cjs",
+  "version": "0.0.3",
+  "exports": {
+    ".": {
+      "import": "./pkg.mjs",
+      "require": "./oops.cjs"
+    }
+  }
+}
